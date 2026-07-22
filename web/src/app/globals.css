@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/* Design tokens. Anything reused more than twice belongs here, not in a page. */
+@theme {
+  --color-leaf-50: #f0fdf4;
+  --color-leaf-100: #dcfce7;
+  --color-leaf-200: #bbf7d0;
+  --color-leaf-300: #86efac;
+  --color-leaf-400: #4ade80;
+  --color-leaf-500: #22c55e;
+  --color-leaf-600: #16a34a;
+  --color-leaf-700: #15803d;
+  --color-leaf-800: #166534;
+  --color-leaf-900: #14532d;
+  --color-leaf-950: #052e16;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #0f1a13;
+  --muted: #56685c;
+  --surface: #f5f9f6;
+  --border: #dde7e0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #08110b;
+    --foreground: #e9f1eb;
+    --muted: #9aada1;
+    --surface: #0e1a12;
+    --border: #1d2f23;
+  }
+}
+
+/* `inline` resolves the var() at build time so utilities like text-muted work. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keyboard users must always be able to see where focus is. */
+:focus-visible {
+  outline: 2px solid var(--color-leaf-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
