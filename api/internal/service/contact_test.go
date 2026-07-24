@@ -47,6 +47,7 @@ func validInput() ContactInput {
 		Phone:   "8341099962",
 		Subject: "Bulk order",
 		Message: "I would like a quote for 200 litres.",
+		Source:  "products",
 	}
 }
 
@@ -64,6 +65,24 @@ func TestSubmitDeliversValidEnquiry(t *testing.T) {
 	}
 	if !strings.Contains(m.sent[0].Text, "200 litres") {
 		t.Errorf("body missing the message text: %q", m.sent[0].Text)
+	}
+	// The attribution source must reach the inbox so enquiries can be traced
+	// back to the page that drove them.
+	if !strings.Contains(m.sent[0].Text, "Source:  products") {
+		t.Errorf("body missing the source line: %q", m.sent[0].Text)
+	}
+}
+
+func TestSubmitDefaultsMissingSourceToDirect(t *testing.T) {
+	m := &stubMailer{}
+	in := validInput()
+	in.Source = "" // visitor came straight to /contact, no ?source= param
+
+	if err := newContact(m).Submit(context.Background(), in); err != nil {
+		t.Fatalf("Submit returned %v, want nil", err)
+	}
+	if !strings.Contains(m.sent[0].Text, "Source:  direct") {
+		t.Errorf("empty source should render as 'direct', got: %q", m.sent[0].Text)
 	}
 }
 

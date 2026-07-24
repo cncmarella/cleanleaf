@@ -28,7 +28,7 @@ export default function HomePage() {
             </p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/contact"
+                href="/contact?source=home-hero"
                 className="rounded-full bg-leaf-700 px-7 py-3.5 text-center text-sm font-semibold text-white transition-colors hover:bg-leaf-800"
               >
                 Request a quote
@@ -110,7 +110,7 @@ export default function HomePage() {
             </p>
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
               <Link
-                href="/contact"
+                href="/contact?source=home-cta"
                 className="rounded-full bg-white px-7 py-3.5 text-sm font-semibold text-leaf-900 transition-colors hover:bg-leaf-50"
               >
                 Send an enquiry

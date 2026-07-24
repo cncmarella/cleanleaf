@@ -18,6 +18,11 @@ type ContactInput struct {
 	Subject string
 	Message string
 
+	// Source records which page/CTA led to the enquiry (from the form's
+	// ?source= param), for attribution. Not user-entered, so it is sanitised
+	// rather than validated.
+	Source string
+
 	// Website is a honeypot: hidden in the form, so a human leaves it empty and
 	// a naive bot fills it in. Populated submissions are dropped silently.
 	Website string
@@ -85,7 +90,7 @@ func (c *Contact) Submit(ctx context.Context, in ContactInput) error {
 		return &DeliveryError{Cause: err}
 	}
 
-	c.log.Info("contact enquiry accepted", "subject", in.Subject)
+	c.log.Info("contact enquiry accepted", "subject", in.Subject, "source", in.Source)
 	return nil
 }
 
@@ -98,6 +103,26 @@ func (in *ContactInput) normalise() {
 	if in.Subject == "" {
 		in.Subject = "General Enquiry"
 	}
+	in.Source = sanitiseSource(in.Source)
+}
+
+// sanitiseSource cleans the attribution value. It is attacker-controllable (it
+// comes from a URL and lands in the email body and logs), so newlines are
+// flattened and the length is capped; an empty value becomes "direct".
+func sanitiseSource(s string) string {
+	s = strings.Map(func(r rune) rune {
+		if r == '\n' || r == '\r' || r == '\t' {
+			return ' '
+		}
+		return r
+	}, strings.TrimSpace(s))
+	if s == "" {
+		return "direct"
+	}
+	if r := []rune(s); len(r) > 64 {
+		s = string(r[:64])
+	}
+	return s
 }
 
 // validate returns a field-name -> message map, empty when the request is good.
@@ -155,7 +180,8 @@ func (in *ContactInput) body() string {
 	fmt.Fprintf(&b, "Name:    %s\n", in.Name)
 	fmt.Fprintf(&b, "Email:   %s\n", in.Email)
 	fmt.Fprintf(&b, "Phone:   %s\n", phone)
-	fmt.Fprintf(&b, "Subject: %s\n\n", in.Subject)
+	fmt.Fprintf(&b, "Subject: %s\n", in.Subject)
+	fmt.Fprintf(&b, "Source:  %s\n\n", in.Source)
 	fmt.Fprintf(&b, "Message:\n%s\n", in.Message)
 	return b.String()
 }

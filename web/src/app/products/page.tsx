@@ -64,7 +64,7 @@ export default function ProductsPage() {
               and we will point you to the right product and dosage.
             </p>
             <Link
-              href="/contact"
+              href="/contact?source=products"
               className="mt-7 inline-block rounded-full bg-leaf-700 px-7 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-leaf-800"
             >
               Ask us

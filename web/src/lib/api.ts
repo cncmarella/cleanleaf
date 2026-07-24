@@ -11,6 +11,7 @@ export type ContactPayload = {
   phone: string;
   subject: string;
   message: string;
+  source: string; // which page/CTA led here, for enquiry attribution
   website: string; // honeypot; always submitted empty by real users
 };
 

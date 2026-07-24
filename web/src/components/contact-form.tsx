@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { submitContact, type ContactResult } from "@/lib/api";
 
 const fieldClass =
@@ -14,6 +14,17 @@ export function ContactForm() {
   const [result, setResult] = useState<ContactResult | null>(null);
   // Lets a second submit cancel an in-flight first one.
   const inFlight = useRef<AbortController | null>(null);
+
+  // Records which CTA/page led here (from a ?source= query param) for enquiry
+  // attribution. Read after mount so the /contact page stays statically
+  // prerendered; falls back to "direct" when there is no param.
+  const sourceRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const source = new URLSearchParams(window.location.search).get("source");
+    if (source && sourceRef.current) {
+      sourceRef.current.value = source;
+    }
+  }, []);
 
   async function handleSubmit(event: React.SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -34,6 +45,7 @@ export function ContactForm() {
         phone: String(data.get("phone") ?? ""),
         subject: String(data.get("subject") ?? ""),
         message: String(data.get("message") ?? ""),
+        source: String(data.get("source") ?? ""),
         website: String(data.get("website") ?? ""),
       },
       controller.signal,
@@ -69,6 +81,10 @@ export function ContactForm() {
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
+      {/* Attribution: which page/CTA led here. Populated from ?source= on mount;
+          defaults to "direct" when the visitor came straight to /contact. */}
+      <input type="hidden" name="source" defaultValue="direct" ref={sourceRef} />
+
       {/* Honeypot: hidden from people, tempting to bots. */}
       <div aria-hidden="true" className="absolute left-[-9999px]">
         <label htmlFor={`${formId}-website`}>Website</label>
