@@ -15,8 +15,15 @@ Two independently deployed apps in one repo ([ADR-0002](docs/adr/0002-monorepo-w
 - **Business logic goes in Go, not TypeScript.** The frontend collects input and
   renders responses; validation, spam filtering and delivery live in `api/`.
   Do not move contact handling into a Server Action ([ADR-0004](docs/adr/0004-contact-form-posts-to-the-go-api.md)).
-- **`api/` has zero third-party dependencies** ([ADR-0003](docs/adr/0003-go-standard-library-over-a-web-framework.md)).
-  Adding one is an ADR-level decision, not a convenience.
+- **`api/` is layered: handler → service** ([ADR-0007](docs/adr/0007-gin-router-with-layered-handler-service-architecture.md)).
+  Business rules (validation, honeypot, mail orchestration) live in
+  `internal/service/`; `internal/handler/` only speaks HTTP (Gin binding,
+  middleware, mapping results to JSON). A repository layer would sit beneath the
+  service, but there is nothing to persist yet ([ADR-0005](docs/adr/0005-no-database-email-only-enquiries.md)).
+- **Gin is the router, and the only heavy dependency** ([ADR-0007](docs/adr/0007-gin-router-with-layered-handler-service-architecture.md)
+  superseded the stdlib-only [ADR-0003](docs/adr/0003-go-standard-library-over-a-web-framework.md)).
+  Adding a *further* third-party dependency is still an ADR-level decision, not a
+  convenience.
 - **`web/` runs Next.js 16**, which has breaking changes from older versions.
   `web/AGENTS.md` says to read `web/node_modules/next/dist/docs/` before writing
   Next-specific code. Do that — e.g. `React.FormEvent` is deprecated in React 19

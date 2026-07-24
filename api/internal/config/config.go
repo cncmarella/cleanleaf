@@ -46,7 +46,7 @@ func Load() (Config, error) {
 
 	// A production deploy that silently logs enquiries instead of mailing them
 	// is worse than a failed boot -- the enquiries are gone and nobody notices.
-	if c.Env == "production" && c.ResendAPIKey == "" {
+	if c.IsProduction() && c.ResendAPIKey == "" {
 		return Config{}, fmt.Errorf("RESEND_API_KEY is required when APP_ENV=production")
 	}
 

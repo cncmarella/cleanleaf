@@ -8,7 +8,7 @@ Ghatkesar, Hyderabad. A Next.js frontend and a Go API, deployed separately.
 | Part     | Choice                                        | Why                                     |
 | -------- | --------------------------------------------- | --------------------------------------- |
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind v4 | Static pages, good SEO out of the box   |
-| Backend  | Go 1.24, standard library only                | Zero dependencies ([ADR-0003](docs/adr/0003-go-standard-library-over-a-web-framework.md)) |
+| Backend  | Go 1.24, Gin, layered handler → service       | Business logic isolated from HTTP ([ADR-0007](docs/adr/0007-gin-router-with-layered-handler-service-architecture.md)) |
 | Email    | Resend API                                    | No database needed yet ([ADR-0005](docs/adr/0005-no-database-email-only-enquiries.md)) |
 | Hosting  | Vercel (web) + Fly.io (api)                   | Free tier, deploy on push ([ADR-0006](docs/adr/0006-hosting-on-vercel-and-fly-io.md)) |
 
@@ -22,7 +22,8 @@ web/    Next.js frontend
 api/    Go backend
   cmd/server/       Entrypoint, graceful shutdown
   internal/config/  Environment configuration
-  internal/handler/ Routes, middleware, contact + health handlers
+  internal/handler/ HTTP layer: Gin routes, middleware, request/response mapping
+  internal/service/ Business logic: contact validation, honeypot, delivery
   internal/mailer/  Resend and console mail transports
   internal/ratelimit/ In-memory per-IP limiter
 docs/adr/  Architecture Decision Records — read these before changing direction
@@ -77,7 +78,7 @@ Base URL: `http://localhost:8080` in dev.
 { "status": "ok", "version": "a1b2c3d" }
 ```
 
-Dependency-free by design, so a mail outage never fails the Fly health check.
+Independent of the mailer by design, so a mail outage never fails the Fly health check.
 
 ### `POST /api/contact`
 
@@ -121,8 +122,8 @@ Every error uses one shape:
 | `PORT`            | `8080`                   |                                                            |
 | `ALLOWED_ORIGINS` | `http://localhost:3000`  | Comma-separated. **Must include the live frontend origin** |
 | `RESEND_API_KEY`  | _empty_                  | Secret. Empty ⇒ console mailer                             |
-| `MAIL_FROM`       | `onboarding@resend.dev`  | Must be a Resend-verified domain to use your own address   |
-| `MAIL_TO`         | `cleanleaf789@gmail.com` | Where enquiries land                                       |
+| `MAIL_FROM`       | `onboarding@resend.dev`  | Sender. Can't be a Gmail address; use your own address only after verifying a domain in Resend (see Deploying §1) |
+| `MAIL_TO`         | `cleanleaf789@gmail.com` | Inbox where enquiries land — a plain Gmail is fine          |
 
 **Frontend** (`web/.env.local` locally; Vercel project settings in production)
 
@@ -137,11 +138,25 @@ works in production.
 
 ### 1. Email — Resend
 
-1. Sign up at [resend.com](https://resend.com) and create an API key.
-2. Keep the default `onboarding@resend.dev` sender for now. It only delivers to
-   the address that owns the Resend account, which is fine for testing.
-3. To send from a CleanLeaf address later, verify a domain in Resend and update
-   `MAIL_FROM`.
+Three different addresses are involved, and only one of them is the visitor's:
+
+| Role            | Config       | Who it is                          | Notes                                                                 |
+| --------------- | ------------ | ---------------------------------- | --------------------------------------------------------------------- |
+| **Sender**      | `MAIL_FROM`  | CleanLeaf                          | Must be an address Resend is authorised to send as — **cannot** be a Gmail/Yahoo address, since nobody can verify `gmail.com`. |
+| **Inbox**       | `MAIL_TO`    | CleanLeaf (`cleanleaf789@gmail.com`) | Where enquiries land to be read. A plain Gmail is fine here.          |
+| **Reply-To**    | _(the form)_ | The visitor                        | Set automatically to what the visitor typed, so hitting **Reply** reaches the customer, not our own inbox. |
+
+You do **not** need to create a new mailbox. Steps:
+
+1. Sign up at [resend.com](https://resend.com) **using `cleanleaf789@gmail.com`**,
+   and create an API key.
+2. Keep the default `onboarding@resend.dev` sender (`MAIL_FROM`) for now. In
+   Resend's test mode it only delivers to the address that **owns the Resend
+   account** — which is the same Gmail we send *to*, so enquiries land in the
+   inbox with no domain setup.
+3. Later, to send from a branded address (e.g. `enquiries@cleanleaf.in`), verify
+   a domain in Resend (add its DNS records) and set `MAIL_FROM` to an address on
+   that domain. `MAIL_TO` can stay the Gmail. Still no new mailbox required.
 
 ### 2. API — Fly.io
 

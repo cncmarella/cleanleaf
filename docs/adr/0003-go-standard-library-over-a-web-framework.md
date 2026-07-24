@@ -4,7 +4,7 @@ Date: 2026-07-22
 
 ## Status
 
-Accepted
+Superseded by [ADR-0007](0007-gin-router-with-layered-handler-service-architecture.md).
 
 ## Context
 
